@@ -73,13 +73,14 @@ module.exports = class Packages {
 
         const res = await this.gitClient.repos.getContent({
             ...getOwnerRepo(pkg),
+            path: pkg.path,
             ref,
         })
 
         pkg.downloads++;
         await this.savePackage(pkg);
 
-        return res.data;
+        return Buffer.from(res.data.content, 'base64').toString('utf-8');
     }
 
     async addStar(name) {
