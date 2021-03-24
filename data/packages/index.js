@@ -53,21 +53,33 @@ module.exports = class Packages {
             name: name,
             versions,
             ...pkg,
+            defaultBranch: repo.data.default_branch,
         };
     }
 
-    async download(name, version = 'latest') {
+    async download(name) {
         const pkg = this.getByName(name);
 
-        let ref = 'master'
-        if (pkg.versions.length) {
-
+        let ref = version;
+        if (!version)  {
+            if (!pkg.versions.length) {
+                // master branch
+                ref = pkg.defaultBranch;
+            } else {
+                // latest release
+                ref = pkg.versions[0];
+            }
         }
 
-        const template = this.gitClient.repos.getContent({
+        const res = await this.gitClient.repos.getContent({
             ...getOwnerRepo(pkg),
-            ref: 
+            ref,
         })
+
+        pkg.downloads++;
+        await this.savePackage(pkg);
+
+        return res.data;
     }
 
     async addStar(name) {
