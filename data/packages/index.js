@@ -57,7 +57,7 @@ module.exports = class Packages {
         };
     }
 
-    async download(name) {
+    async download(name, version) {
         const pkg = this.getByName(name);
 
         let ref = version;
