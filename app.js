@@ -50,7 +50,18 @@ app.get('/templates/:name', async (req, res, next) => {
   }
 });
 
-
+app.get('/templates/parameters', async (req, res, next) => {
+  try {
+    const ref=req.query.ref;
+    const name = req.params.name;
+    const found = await packages.download(name, ref);
+    res.json({
+      result: found || {}
+    });
+  } catch(err) {
+      next(err);
+  }
+});
 
 app.listen(2020, () => {
   console.log('server is listening on port 2020');
