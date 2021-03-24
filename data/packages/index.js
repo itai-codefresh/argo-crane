@@ -48,6 +48,10 @@ module.exports = class Packages {
         };
     }
 
+    async getTemplate(name, version = 'latest') {
+        
+    }
+
     async addStar(name) {
         const pkg = await this.getByName(name);
         pkg.stars++;

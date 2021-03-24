@@ -29,7 +29,7 @@ app.get('/packages', async (req, res, next) => {
   });
 });
 
-app.get('/package/:name', async (req, res, next) => {
+app.get('/packages/:name', async (req, res, next) => {
   const name = req.params.name;
   const packageData = await readFileAsync(packageFile);
   const packages = JSON.parse(packageData);
