@@ -1,9 +1,26 @@
 const fs = require('util').promisify(require('fs'));
 const axios = require('axios');
+const { Octokit } = require('@octokit/rest');
 const filename = "./packages.json"
 
+const getOwnerRepo = (pkg) => {
+    const parts = pkg.repo.split('/');
+    return {
+        owner: parts[parts.length-2],
+        repo: parts[parts.length-1],
+    };
+}
+
 module.exports = class Packages {
-    constructor() {}
+    constructor() {
+        const token = process.env.GIT_TOKEN;
+        if (!token) {
+            throw new Error('export GIT_TOKEN environment variable');
+        }
+        this.gitClient = new Octokit({
+            auth: token,
+        });
+    }
 
     async getAll() {
         const data = await this._readAll();
@@ -20,8 +37,13 @@ module.exports = class Packages {
         if (!pkg) {
             throw new Error(`package: ${name} not found`);
         }
+
+        const releases = await this.gitClient.repos.listReleases(getOwnerRepo(pkg));
+        const versions = releases.map(r => r.tag_name);
+
         return {
             name: name,
+            versions,
             ...pkg,
         };
     }
