@@ -1,7 +1,9 @@
-const fs = require('util').promisify(require('fs'));
+const fs = require('fs');
+const { promisify } = require('util')
 const axios = require('axios');
-const filename = "./packages.json"
-
+const filename = `${__dirname}/packages.json`
+const writeFile=promisify(fs.writeFile)
+const readFile=promisify(fs.readFile)
 module.exports = class Packages {
     constructor() {}
 
@@ -44,11 +46,11 @@ module.exports = class Packages {
         delete pkg.name;
         data[name] = pkg;
         const str = JSON.stringify(data);
-        return fs.writeFile(filename, str);
+        return writeFile(filename, str);
     }
 
     async _readAll() {
-        const str = await fs.readFile(filename);
+        const str = await readFile(filename);
         return JSON.parse(str);
     }
 }
