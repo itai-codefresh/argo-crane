@@ -1,5 +1,4 @@
 const fs = require('fs').promises;
-const axios = require('axios');
 const { Octokit } = require('@octokit/rest');
 const filename = "./data/data.json"
 

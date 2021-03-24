@@ -31,9 +31,7 @@ app.get('/packages', async (req, res, next) => {
 
 app.get('/package/:name', async (req, res, next) => {
   const name = req.params.name;
-  const packageData = await readFileAsync(packageFile);
-  const packages = JSON.parse(packageData);
-  const found=packages.find(item=>item.name==name);
+  const found = await packages.getByName(name);
   found['Readme'] = getRemoteReadme(found.repo)
   found['templatePath'] = getRemoteTemplate(found.repo, found.path)
   res.json({
