@@ -58,7 +58,7 @@ module.exports = class Packages {
     }
 
     async download(name, version) {
-        const pkg = this.getByName(name);
+        const pkg = await this.getByName(name);
 
         let ref = version;
         if (!version)  {
