@@ -68,6 +68,17 @@ module.exports = app;
 
 
 
+const splitRepo = (repo) => {
+  const directRepo=repo.replace('github.com','raw.githubusercontent.com')
+                       .replace('https://', '')
+                       .replace('http://', '');
+
+  const splitted=directRepo.split('/');
+  const host = splitted[0];
+  const thePath = splitted.slice(1).join('/')
+  return { host, path:thePath}
+};
+
 const getRemoteTemplate = async (repo, path) => {
   repo.split();
   const directRepo=repo.replace('github.com','raw.githubusercontent.com')
