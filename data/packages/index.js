@@ -38,7 +38,7 @@ module.exports = class Packages {
         }
 
         const releases = await this.gitClient.repos.listReleases(getOwnerRepo(pkg));
-        const versions = releases.map(r => r.tag_name);
+        const versions = releases.data.map(r => r.tag_name);
 
         return {
             name: name,
@@ -48,7 +48,7 @@ module.exports = class Packages {
     }
 
     async getTemplate(name, version = 'latest') {
-        
+
     }
 
     async addStar(name) {
