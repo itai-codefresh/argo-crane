@@ -24,7 +24,7 @@ module.exports = class Packages {
 
     async getAll() {
         const data = await this._readAll();
-        return Object.keys(data).reduce((cur, acc) => {
+        return Object.keys(data).reduce((prev,cur, idx, acc) => {
             const pkg = { name: cur, ...data[cur] };
             acc.push(pkg);
             return acc;

@@ -25,7 +25,7 @@ app.use(cookieParser());
 app.get('/packages', async (req, res, next) => {
   const result = await packages.getAll()
   res.json({
-    result: found || {}
+    result: result
   });
 });
 
