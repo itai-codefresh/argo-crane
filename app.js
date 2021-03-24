@@ -1,4 +1,3 @@
-const createError = require('http-errors');
 const express = require('express');
 const path = require('path');
 const cookieParser = require('cookie-parser');
@@ -14,13 +13,13 @@ const dataDir = __dirname+'/data/';
 const packageFilename = 'packages.json';
 const packageFile = `${dataDir}//${packageFilename}`;
 
-
 var app = express();
 app.use(express.static(path.join(__dirname, 'public')));
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 
+app.use(cors());
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -34,7 +33,7 @@ app.get('/packages', (req, res, next) => {
       headers: {
         'x-timestamp': Date.now(),
         'x-sent': true
-      }
+      },
     };
 
     res.sendFile(filename, options, function (err) {
