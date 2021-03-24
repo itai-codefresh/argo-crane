@@ -1,7 +1,7 @@
 const fs = require('fs').promises;
 const axios = require('axios');
 const { Octokit } = require('@octokit/rest');
-const filename = "./packages.json"
+const filename = "./data/data.json"
 
 const getOwnerRepo = (pkg) => {
     const parts = pkg.repo.split('/');
@@ -24,7 +24,7 @@ module.exports = class Packages {
 
     async getAll() {
         const data = await this._readAll();
-        return Object.keys(data).reduce((prev,cur, idx, acc) => {
+        return Object.keys(data).reduce((acc, cur) => {
             const pkg = { name: cur, ...data[cur] };
             acc.push(pkg);
             return acc;
