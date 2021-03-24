@@ -1,4 +1,4 @@
-const fs = require('util').promisify(require('fs'));
+const fs = require('fs').promises;
 const axios = require('axios');
 const { Octokit } = require('@octokit/rest');
 const filename = "./packages.json"
@@ -57,7 +57,12 @@ module.exports = class Packages {
     async addDownload(name) {
         const pkg = await this.getByName(name);
         pkg.downloads++;
-        return this.savePackage(pkg);
+        const content = await this.gitClient.repos.getContent({
+            ...getOwnerRepo(pkg),
+            path: pkg.path,
+        })
+        await this.savePackage(pkg);
+        return content;
     }
 
     async savePackage(pkg) {
@@ -66,11 +71,11 @@ module.exports = class Packages {
         delete pkg.name;
         data[name] = pkg;
         const str = JSON.stringify(data);
-        return fs.writeFile(filename, str);
+        return writeFile(filename, str);
     }
 
     async _readAll() {
-        const str = await fs.readFile(filename);
+        const str = await readFile(filename);
         return JSON.parse(str);
     }
 }
