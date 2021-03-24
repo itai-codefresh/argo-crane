@@ -4,6 +4,7 @@
         "path": "example.yaml",
         "downloads": 0,
         "stars": 5,
-        "successRate": 0.1
+        "successRate": 0.1,
+        "readme": "https://raw.githubusercontent.com/saffi-codefresh/argo-crane/main/README.md"
     }
 }

@@ -1,11 +1,26 @@
-const fs = require('fs');
-const { promisify } = require('util')
+const fs = require('fs').promises;
 const axios = require('axios');
-const filename = `${__dirname}/packages.json`
-const writeFile=promisify(fs.writeFile)
-const readFile=promisify(fs.readFile)
+const { Octokit } = require('@octokit/rest');
+const filename = "./packages.json"
+
+const getOwnerRepo = (pkg) => {
+    const parts = pkg.repo.split('/');
+    return {
+        owner: parts[parts.length-2],
+        repo: parts[parts.length-1],
+    };
+}
+
 module.exports = class Packages {
-    constructor() {}
+    constructor() {
+        const token = process.env.GIT_TOKEN;
+        if (!token) {
+            throw new Error('export GIT_TOKEN environment variable');
+        }
+        this.gitClient = new Octokit({
+            auth: token,
+        });
+    }
 
     async getAll() {
         const data = await this._readAll();
@@ -22,8 +37,13 @@ module.exports = class Packages {
         if (!pkg) {
             throw new Error(`package: ${name} not found`);
         }
+
+        const releases = await this.gitClient.repos.listReleases(getOwnerRepo(pkg));
+        const versions = releases.map(r => r.tag_name);
+
         return {
             name: name,
+            versions,
             ...pkg,
         };
     }
@@ -37,7 +57,12 @@ module.exports = class Packages {
     async addDownload(name) {
         const pkg = await this.getByName(name);
         pkg.downloads++;
-        return this.savePackage(pkg);
+        const content = await this.gitClient.repos.getContent({
+            ...getOwnerRepo(pkg),
+            path: pkg.path,
+        })
+        await this.savePackage(pkg);
+        return content;
     }
 
     async savePackage(pkg) {
@@ -46,11 +71,11 @@ module.exports = class Packages {
         delete pkg.name;
         data[name] = pkg;
         const str = JSON.stringify(data);
-        return writeFile(filename, str);
+        return fs.writeFile(filename, str);
     }
 
     async _readAll() {
-        const str = await readFile(filename);
+        const str = await fs.readFile(filename);
         return JSON.parse(str);
     }
 }
