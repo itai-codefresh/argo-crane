@@ -2,6 +2,8 @@ const fs = require('fs').promises;
 const { Octokit } = require('@octokit/rest');
 const filename = "./data/data.json"
 
+const MAX_RELEASES_PER_PAGE = 50;
+
 const getOwnerRepo = (pkg) => {
     const parts = pkg.repo.split('/');
     return {
@@ -37,7 +39,14 @@ module.exports = class Packages {
             throw new Error(`package: ${name} not found`);
         }
 
-        const releases = await this.gitClient.repos.listReleases(getOwnerRepo(pkg));
+        const repo = await this.gitClient.repos.get({ 
+            ...getOwnerRepo(pkg),
+        });
+
+        const releases = await this.gitClient.repos.listReleases({ 
+            ...getOwnerRepo(pkg),
+            per_page: MAX_RELEASES_PER_PAGE,
+        });
         const versions = releases.data.map(r => r.tag_name);
 
         return {
@@ -47,25 +56,24 @@ module.exports = class Packages {
         };
     }
 
-    async getTemplate(name, version = 'latest') {
+    async download(name, version = 'latest') {
+        const pkg = this.getByName(name);
 
+        let ref = 'master'
+        if (pkg.versions.length) {
+
+        }
+
+        const template = this.gitClient.repos.getContent({
+            ...getOwnerRepo(pkg),
+            ref: 
+        })
     }
 
     async addStar(name) {
         const pkg = await this.getByName(name);
         pkg.stars++;
         return this.savePackage(pkg);
-    }
-
-    async addDownload(name) {
-        const pkg = await this.getByName(name);
-        pkg.downloads++;
-        const content = await this.gitClient.repos.getContent({
-            ...getOwnerRepo(pkg),
-            path: pkg.path,
-        })
-        await this.savePackage(pkg);
-        return content;
     }
 
     async savePackage(pkg) {
