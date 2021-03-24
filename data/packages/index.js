@@ -71,11 +71,11 @@ module.exports = class Packages {
         delete pkg.name;
         data[name] = pkg;
         const str = JSON.stringify(data);
-        return writeFile(filename, str);
+        return fs.writeFile(filename, str);
     }
 
     async _readAll() {
-        const str = await readFile(filename);
+        const str = await fs.readFile(filename);
         return JSON.parse(str);
     }
 }
