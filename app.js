@@ -32,11 +32,21 @@ app.get('/packages', async (req, res, next) => {
 app.get('/packages/:name', async (req, res, next) => {
   const name = req.params.name;
   const found = await packages.getByName(name);
-  found['Readme'] = getRemoteReadme(found.repo)
-  found['templatePath'] = getRemoteTemplate(found.repo, found.path)
   res.json({
     result: found || {}
   });
+});
+
+app.get('/templates/:name/:version', async (req, res, next) => {
+  try {
+    const name = req.params.name;
+    const found = await packages.addDownload(name, version);
+    res.json({
+      result: found || {}
+    });
+  } catch(err) {
+      next(err);
+  }
 });
 
 
@@ -46,45 +56,3 @@ app.listen(2020, () => {
 });
 
 module.exports = app;
-
-
-
-const splitRepo = (repo) => {
-  const directRepo=repo.replace('github.com','raw.githubusercontent.com')
-                       .replace('https://', '')
-                       .replace('http://', '');
-
-  const splitted=directRepo.split('/');
-  const host = splitted[0];
-  const thePath = splitted.slice(1).join('/')
-  return { host, path:thePath}
-};
-
-const getRemoteReadme = async (repo) => {
-  const { host, path} = splitRepo(repo)
-  const response = await axios.get(`https://${host}/${path}/Readme`)
-  logger(`status: ${response.statusCode}`)
-};
-
-const getRemoteTemplate = async (repo, templatePath) => {
-  const { host, path} = splitRepo(repo)
-  const response = await axios.get(`https://${host}/${path}/${templatePath}`)
-  logger(`status: ${response.statusCode}`)
-};
-
-//
-// (async () => {
-//   try {
-//     const [response1, response2] = await axios.all([
-//       axios.get('https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY&date=2020-03-18'),
-//       axios.get('https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY&date=2020-03-17')
-//     ]);
-//     console.log(response1.data.url);
-//     console.log(response1.data.explanation);
-//
-//     console.log(response2.data.url);
-//     console.log(response2.data.explanation);
-//   } catch (error) {
-//     console.log(error.response.body);
-//   }
-// })();
