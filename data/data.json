@@ -18,6 +18,7 @@
         "author": "roi-kramer",
         "description": "controll IoT devices using the samsung smartthings API",
         "path": "workflows/workflow-template.yaml",
+        "examplesPath": "workflows/example-values.yaml",
         "weeklyDownloads": 13,
         "stars": 15,
         "successRate": {

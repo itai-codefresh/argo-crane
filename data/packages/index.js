@@ -15,7 +15,7 @@ const getOwnerRepo = (pkg) => {
     };
 }
 
-const parseParameters = (template) => {
+const parseParameters = (template, exampleValuesStr) => {
     const tpl = YAML.parse(template);
 
     const parameters = _.get(tpl, 'spec.templates', []).reduce((acc, cur) => {
@@ -30,6 +30,16 @@ const parseParameters = (template) => {
         if (!param) { return; }
         
         param.default = p.value;
+    });
+
+    let exampleValues = {};
+    try {
+        exampleValues = YAML.parse(exampleValuesStr);
+    } catch (err) {}
+
+    _.forEach(exampleValues, (value, name) => {
+        const param = parameters.find(p => p.name === name);
+        param.example = value;
     });
 
     return parameters;
@@ -79,30 +89,15 @@ module.exports = class Packages {
             ref = pkg.defaultBranch;
         }
 
-        const [template, changelog] = await Promise.all([
-            (async () => {
-                const res = await this.gitClient.repos.getContent({
-                    ...getOwnerRepo(pkg),
-                    path: pkg.path,
-                    ref,
-                });
-                return Buffer.from(res.data.content, 'base64').toString('utf-8');
-            })(),
-            (async () => {
-                try {
-                    const res = await this.gitClient.repos.getContent({
-                        ...getOwnerRepo(pkg),
-                        path: CHANGE_LOG_PATH,
-                        ref,
-                    });
-                    return Buffer.from(res.data.content, 'base64').toString('utf-8');
-                } catch (err) {
-                    return '';
-                }
-            })(),
+        const [template, changelog, exampleValues] = await Promise.all([
+            this._getFile(pkg, ref, pkg.path),
+            this._getFile(pkg, ref, CHANGE_LOG_PATH),
+            this._getFile(pkg, ref, pkg.examplesPath),
         ]);
 
-        const parameters = parseParameters(template);
+        const parameters = parseParameters(template, exampleValues);
+
+        delete pkg.examplesPath;
 
         return {
             ...pkg,
@@ -113,6 +108,19 @@ module.exports = class Packages {
             parameters,
             changelog,
         };
+    }
+
+    async _getFile(pkg, ref, path) {
+        try {
+            const res = await this.gitClient.repos.getContent({
+                ...getOwnerRepo(pkg),
+                path,
+                ref,
+            });
+            return Buffer.from(res.data.content, 'base64').toString('utf-8');
+        } catch (err) {
+            return '';
+        }
     }
 
     async download(name, version) {
