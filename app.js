@@ -69,16 +69,13 @@ app.get('/templates/:name', async (req, res, next) => {
     }
 });
 
-app.get('/templates/parameters', async (req, res, next) => {
+app.get('/parameters', async (req, res, next) => {
   try {
-    const ref=req.query.ref;
-    const name = req.params.name;
-    const found = await packages.download(name, ref);
-    res.json({
-      result: found || {}
-    });
+    res.setHeader('Content-type', "application/octet-stream");
+    res.setHeader('Content-disposition', 'attachment; filename=params.json');
+    res.send(JSON.stringify(req.query))
   } catch(err) {
-      next(err);
+    next(err);
   }
 });
 
