@@ -1,7 +1,10 @@
 const fs = require('fs').promises;
 const { Octokit } = require('@octokit/rest');
-const filename = "./data/data.json"
+const YAML = require('yaml');
+const _ = require('lodash');
 
+const FILENAME = './data/data.json';
+const CHANGE_LOG_PATH = '/CHANGELOG.md';
 const MAX_RELEASES_PER_PAGE = 50;
 
 const getOwnerRepo = (pkg) => {
@@ -10,6 +13,26 @@ const getOwnerRepo = (pkg) => {
         owner: parts[parts.length-2],
         repo: parts[parts.length-1],
     };
+}
+
+const parseParameters = (template) => {
+    const tpl = YAML.parse(template);
+
+    const parameters = _.get(tpl, 'spec.templates', []).reduce((acc, cur) => {
+        return _.get(cur, 'inputs.parameters', []).reduce((__, _cur) => {
+            acc.push(_cur);
+            return acc;
+        }, acc);
+    }, []);
+
+    _.get(tpl, 'spec.arguments.parameters', []).forEach((p) => {
+        const param = parameters.find(_p => _p.name === p.name);
+        if (!param) { return; }
+        
+        param.default = p.value;
+    });
+
+    return parameters;
 }
 
 module.exports = class Packages {
@@ -25,14 +48,16 @@ module.exports = class Packages {
 
     async getAll() {
         const data = await this._readAll();
+        const pkgs = [];
         return Object.keys(data).reduce((acc, cur) => {
-            const pkg = { name: cur, ...data[cur] };
-            acc.push(pkg);
-            return acc;
-        }, []);
+            return acc.then(async () => {
+                pkgs.push(await this.getByName(cur));
+                return pkgs;
+            });
+        }, Promise.resolve());
     }
 
-    async getByName(name) {
+    async getByName(name, version) {
         const data = await this._readAll();
         const pkg = data[name];
         if (!pkg) {
@@ -49,38 +74,53 @@ module.exports = class Packages {
         });
         const versions = releases.data.map(r => r.tag_name);
 
+        let ref = version;
+        if (!version)  {
+            ref = pkg.defaultBranch;
+        }
+
+        const [template, changelog] = await Promise.all([
+            (async () => {
+                const res = await this.gitClient.repos.getContent({
+                    ...getOwnerRepo(pkg),
+                    path: pkg.path,
+                    ref,
+                });
+                return Buffer.from(res.data.content, 'base64').toString('utf-8');
+            })(),
+            (async () => {
+                try {
+                    const res = await this.gitClient.repos.getContent({
+                        ...getOwnerRepo(pkg),
+                        path: CHANGE_LOG_PATH,
+                        ref,
+                    });
+                    return Buffer.from(res.data.content, 'base64').toString('utf-8');
+                } catch (err) {
+                    return '';
+                }
+            })(),
+        ]);
+
+        const parameters = parseParameters(template);
+
         return {
+            ...pkg,
             name: name,
             versions,
-            ...pkg,
             defaultBranch: repo.data.default_branch,
+            template,
+            parameters,
+            changelog,
         };
     }
 
     async download(name, version) {
-        const pkg = await this.getByName(name);
-
-        let ref = version;
-        if (!version)  {
-            if (!pkg.versions.length) {
-                // master branch
-                ref = pkg.defaultBranch;
-            } else {
-                // latest release
-                ref = pkg.versions[0];
-            }
-        }
-
-        const res = await this.gitClient.repos.getContent({
-            ...getOwnerRepo(pkg),
-            path: pkg.path,
-            ref,
-        })
-
-        pkg.downloads++;
+        const pkg = await this.getByName(name, version);
+        pkg.weeklyDownloads++;
         await this.savePackage(pkg);
 
-        return Buffer.from(res.data.content, 'base64').toString('utf-8');
+        return pkg.template;
     }
 
     async addStar(name) {
@@ -90,16 +130,24 @@ module.exports = class Packages {
     }
 
     async savePackage(pkg) {
+        pkg = _.cloneDeep(pkg);
         const data = await this._readAll();
         const {name} = pkg;
+
         delete pkg.name;
+        delete pkg.defaultBranch;
+        delete pkg.template;
+        delete pkg.versions;
+        delete pkg.parameters;
+        delete pkg.changelog;
+        
         data[name] = pkg;
         const str = JSON.stringify(data);
-        return fs.writeFile(filename, str);
+        return fs.writeFile(FILENAME, str);
     }
 
     async _readAll() {
-        const str = await fs.readFile(filename);
+        const str = await fs.readFile(FILENAME);
         return JSON.parse(str);
     }
 }
