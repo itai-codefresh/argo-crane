@@ -1,0 +1,10 @@
+version: "3.9"
+services:
+  api:
+    build: .
+    ports:
+      - "2020:2020"
+    environment:
+      - GIT_TOKEN
+
+
